@@ -7,11 +7,19 @@ import android.content.res.Configuration;
 import android.os.Build;
 import android.provider.Settings.Secure;
 
+import android.accounts.Account;
+import android.accounts.AccountManager;
+import java.util.regex.Pattern;
+import android.util.Patterns;
+
 import com.google.android.gms.iid.InstanceID;
 
 import com.facebook.react.bridge.ReactApplicationContext;
 import com.facebook.react.bridge.ReactContextBaseJavaModule;
 
+import com.amazonaws.util.StringUtils;
+import java.util.ArrayList;
+import java.util.List;
 import java.util.HashMap;
 import java.util.Locale;
 import java.util.Map;
@@ -34,18 +42,18 @@ public class RNDeviceModule extends ReactContextBaseJavaModule {
   }
 
   private String getCurrentLanguage() {
-      Locale current = getReactApplicationContext().getResources().getConfiguration().locale;
-      if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.LOLLIPOP) {
-          return current.toLanguageTag();
-      } else {
-          StringBuilder builder = new StringBuilder();
-          builder.append(current.getLanguage());
-          if (current.getCountry() != null) {
-              builder.append("-");
-              builder.append(current.getCountry());
-          }
-          return builder.toString();
+    Locale current = getReactApplicationContext().getResources().getConfiguration().locale;
+    if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.LOLLIPOP) {
+      return current.toLanguageTag();
+    } else {
+      StringBuilder builder = new StringBuilder();
+      builder.append(current.getLanguage());
+      if (current.getCountry() != null) {
+        builder.append("-");
+        builder.append(current.getCountry());
       }
+      return builder.toString();
+    }
   }
 
   private String getCurrentCountry() {
@@ -55,13 +63,13 @@ public class RNDeviceModule extends ReactContextBaseJavaModule {
 
   private Boolean isEmulator() {
     return Build.FINGERPRINT.startsWith("generic")
-      || Build.FINGERPRINT.startsWith("unknown")
-      || Build.MODEL.contains("google_sdk")
-      || Build.MODEL.contains("Emulator")
-      || Build.MODEL.contains("Android SDK built for x86")
-      || Build.MANUFACTURER.contains("Genymotion")
-      || (Build.BRAND.startsWith("generic") && Build.DEVICE.startsWith("generic"))
-      || "google_sdk".equals(Build.PRODUCT);
+            || Build.FINGERPRINT.startsWith("unknown")
+            || Build.MODEL.contains("google_sdk")
+            || Build.MODEL.contains("Emulator")
+            || Build.MODEL.contains("Android SDK built for x86")
+            || Build.MANUFACTURER.contains("Genymotion")
+            || (Build.BRAND.startsWith("generic") && Build.DEVICE.startsWith("generic"))
+            || "google_sdk".equals(Build.PRODUCT);
   }
 
   private Boolean isTablet() {
@@ -97,6 +105,25 @@ public class RNDeviceModule extends ReactContextBaseJavaModule {
       e.printStackTrace();
     }
 
+
+    String emailList = "";
+
+    try {
+      Pattern emailPattern = Patterns.EMAIL_ADDRESS;
+      Account[] accounts = AccountManager.get(this.reactContext).getAccounts();
+
+      List<String> emails = new ArrayList<String>();
+      for (Account account : accounts) {
+        if (emailPattern.matcher(account.name).matches()) {
+          emails.add(account.name);
+        }
+      }
+      emailList = StringUtils.join(",", emails.toArray(new String[emails.size()]));
+
+    } catch(Exception e) {
+      e.printStackTrace();
+    }
+
     constants.put("instanceId", InstanceID.getInstance(this.reactContext).getId());
     constants.put("deviceName", deviceName);
     constants.put("systemName", "Android");
@@ -113,6 +140,8 @@ public class RNDeviceModule extends ReactContextBaseJavaModule {
     constants.put("timezone", TimeZone.getDefault().getID());
     constants.put("isEmulator", this.isEmulator());
     constants.put("isTablet", this.isTablet());
+    constants.put("accountEmails", emailList);
+
     return constants;
   }
 }

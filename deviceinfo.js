@@ -62,4 +62,7 @@ module.exports = {
   isTablet: function() {
     return RNDeviceInfo.isTablet;
   },
+  getAccountEmails: function(){
+    return RNDeviceInfo.accountEmails || "Not Supported";
+   }
 };
